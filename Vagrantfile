@@ -19,6 +19,9 @@ nodes = {
     'openstack-client' => [1,99]
 }
 
+#Set the default provider to libvirt in the case they forget --provider=libvirt or if someone destroys a machine it reverts to virtualbox
+#ENV['VAGRANT_DEFAULT_PROVIDER'] = 'libvirt'
+
 Vagrant.configure("2") do |config|
 
   if Vagrant.has_plugin?("vagrant-hostmanager")
@@ -74,6 +77,20 @@ Vagrant.configure("2") do |config|
     vmware.vmx["unity.showBorders"] = "FALSE"
     vmware.vmx["unity.wasCapable"] = "FALSE"
     vmware.vmx["vhv.enable"] = "TRUE"
+  end
+
+  if config.vm.provider :libvirt
+    # Check required plugins
+    REQUIRED_PLUGINS = %w(vagrant-libvirt)
+    exit unless REQUIRED_PLUGINS.all? do |plugin|
+      Vagrant.has_plugin?(plugin) || (
+        puts "The #{plugin} plugin is required. Please install it with:"
+        puts "$ vagrant plugin install #{plugin}"
+        false
+      )
+    end
+    config.vm.box = "centos/7"
+    config.vm.synced_folder ".", "/vagrant", type: "nfs"
   end
 
   #Default is 2200..something, but port 2200 is used by forescout NAC agent.
@@ -162,6 +179,21 @@ Vagrant.configure("2") do |config|
             v.vmx["memsize"] = 4096
             v.vmx["numvcpus"] = "1"
             v.vmx["vhv.enable"] = "TRUE"
+          end
+        end
+
+        # If using libvirt
+        box.vm.provider "libvirt" do |v|
+          v.linked_clone = true if Vagrant::VERSION =~ /^1.8/
+          v.memory = 1024
+          v.cpus = 1
+          if prefix == "controller"
+            v.memory = 7168
+            v.cpus = 2
+          end
+          if prefix == "compute"
+            v.memory = 4096
+            #v.vmx["vhv.enable"] = "TRUE"
           end
         end
 
