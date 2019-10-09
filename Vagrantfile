@@ -79,7 +79,9 @@ Vagrant.configure("2") do |config|
     vmware.vmx["vhv.enable"] = "TRUE"
   end
 
-  if config.vm.provider :libvirt
+  config.vm.provider "libvirt" do |virt_obj, override|
+    override.vm.box = "generic/centos7"
+    override.vm.synced_folder ".", "/vagrant", type: "nfs"
     # Check required plugins
     REQUIRED_PLUGINS = %w(vagrant-libvirt)
     exit unless REQUIRED_PLUGINS.all? do |plugin|
@@ -89,8 +91,6 @@ Vagrant.configure("2") do |config|
         false
       )
     end
-    config.vm.box = "centos/7"
-    config.vm.synced_folder ".", "/vagrant", type: "nfs"
   end
 
   #Default is 2200..something, but port 2200 is used by forescout NAC agent.
